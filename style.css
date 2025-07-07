@@ -30,30 +30,55 @@ body, html {
    Header (logo) common
 ============================= */
 .site-header {
-  background: var(--dark-blue);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   padding: 1rem;
-  text-align: center;
+  background: var(--dark-blue);
 }
+
 .site-header .logo {
+  margin-left: auto;
   max-height: 50px;
   filter: brightness(0) invert(1);
+}
+
+/* Logout Button */
+.logout-btn {
+  margin: 0;
+  padding: 0.4rem 0.8rem;
+  background: var(--error-red);
+  color: var(--white);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.logout-btn:hover {
+  background: #bf1e1e;
+}
+
+.user-name {
+  margin-left: 0.5rem;
+  color: var(--white);
+  font-weight: bold;
 }
 
 /* =============================
    Container adjustments
 ============================= */
-/* fluidní šířka až do 600px */
 .container {
   width: 95%;
   max-width: 960px;
   margin: 2rem auto;
-  background: var(--white);     /* bílý podklad */
+  background: var(--white);
   color: #000;
-  border-radius: 8px;           /* zaoblené rohy */
+  border-radius: 8px;
   box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-  padding: 1rem;                /* odsazení uvnitř */
+  padding: 1rem;
 }
-
 
 /* =============================
    Login & Kelimkar Forms
@@ -83,7 +108,6 @@ body, html {
   color: var(--dark-blue);
 }
 
-/* Inputs & Selects */
 .login-box input,
 .form-box input,
 .form-box select {
@@ -103,7 +127,6 @@ body, html {
   box-shadow: 0 0 0 3px rgba(91,141,239,0.4);
 }
 
-/* Buttons */
 .login-box button,
 .form-box button {
   width: 100%;
@@ -116,6 +139,7 @@ body, html {
   font-weight: bold;
   cursor: pointer;
   font-size: 1rem;
+  transition: background 0.3s;
 }
 
 .login-box button:hover,
@@ -123,14 +147,18 @@ body, html {
   background: var(--light-blue);
 }
 
-/* Status Messages */
+/* =============================
+   Status Messages
+============================= */
 .status {
   margin-top: 0.75rem;
   font-weight: bold;
 }
+
 .status.error {
   color: var(--error-red);
 }
+
 .status.ok {
   color: green;
 }
@@ -138,12 +166,10 @@ body, html {
 /* =============================
    Tables for Stankar & Nadrizeny
 ============================= */
-/* kontejner pro tabulku center + scroll */
 .table-container {
   overflow-x: auto;
 }
 
-/* vnitřní box */
 .container h1 {
   font-size: 1.5rem;
   margin-bottom: 1rem;
@@ -163,18 +189,16 @@ table {
 }
 
 th, td {
-  white-space: normal;    /* teď se text zalomí */
-  word-wrap: break-word;  /* přelom slova pokud je třeba */
+  white-space: normal;
+  word-wrap: break-word;
   padding: 0.75rem;
 }
 
-/* hlavička tabulky */
 th {
   background: var(--dark-blue);
   color: var(--white);
 }
 
-/* zebra-striping */
 tr:nth-child(even) {
   background: var(--grey-100);
 }
@@ -189,7 +213,7 @@ th:nth-child(5),
 td:nth-child(5) {
   width: auto !important;
 }
-/* tlačítko potvrzení ve stankar.html */
+
 button.confirm {
   padding: 0.4rem 0.6rem;
   background: var(--dark-blue);
@@ -197,7 +221,9 @@ button.confirm {
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  transition: background 0.3s;
 }
+
 button.confirm:hover {
   background: var(--light-blue);
 }
@@ -220,45 +246,61 @@ button.confirm:hover {
   }
 }
 
-/* ===== Logout Button ===== */
-.logout-btn {
-  margin-left: auto;              /* roztlačí tlačítko doprava */
-  padding: 0.4rem 0.8rem;
-  background: var(--error-red);   /* červená z root */
-  color: var(--white);
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: background 0.2s;
-}
-.logout-btn:hover {
-  background: #bf1e1e;
-}
-/* upravená hlavička */
-.site-header {
+/* 🎨 Jemný design pro filtrovací panel */
+.filter-container {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   align-items: center;
-  justify-content: flex-start; /* vše vlevo */
-  padding: 1rem;
-  background: var(--dark-blue);
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
 }
 
-/* logout tlačítko vlevo */
-.logout-btn {
-  margin: 0;
+.filter-container label {
+  font-weight: 500;
+  color: var(--dark-blue);
 }
 
-/* jméno uživatele vedle tlačítka */
-.user-name {
-  margin-left: 0.5rem;
-  color: var(--white);
-  font-weight: bold;
+.filter-container select,
+.filter-container input[type="date"] {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  background: #ffffff;
+  color: #111827;
 }
 
-/* logo napravo */
-.site-header .logo {
-  margin-left: auto;
-  max-height: 50px;
-  filter: brightness(0) invert(1);
+.filter-container select:focus,
+.filter-container input[type="date"]:focus {
+  border-color: var(--light-blue);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(91,141,239,0.2);
+}
+
+.filter-container button {
+  padding: 0.5rem 1rem;
+  background: var(--light-blue);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.95rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: background 0.3s, transform 0.1s;
+}
+
+.filter-container button:hover {
+  background: #212050;
+  transform: translateY(-1px);
+}
+
+.filter-container button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }

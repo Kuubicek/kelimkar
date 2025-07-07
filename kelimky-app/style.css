@@ -1,0 +1,264 @@
+/* =============================
+   Common Variables & Reset
+============================= */
+:root {
+  --dark-blue:    hwb(210 0% 38%);
+  --light-blue:   #5B8DEF;
+  --white:        #FFFFFF;
+  --grey-100:     #F3F4F6;
+  --grey-300:     #D1D5DB;
+  --grey-500:     #A1A1AA;
+  --error-red:    #DC2626;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body, html {
+  height: 100%;
+  width: 100%;
+  font-family: Arial, sans-serif;
+  background: var(--dark-blue);
+  color: var(--white);
+  line-height: 1.4;
+}
+
+/* =============================
+   Header (logo) common
+============================= */
+.site-header {
+  background: var(--dark-blue);
+  padding: 1rem;
+  text-align: center;
+}
+.site-header .logo {
+  max-height: 50px;
+  filter: brightness(0) invert(1);
+}
+
+/* =============================
+   Container adjustments
+============================= */
+/* fluidní šířka až do 600px */
+.container {
+  width: 95%;
+  max-width: 960px;
+  margin: 2rem auto;
+  background: var(--white);     /* bílý podklad */
+  color: #000;
+  border-radius: 8px;           /* zaoblené rohy */
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+  padding: 1rem;                /* odsazení uvnitř */
+}
+
+
+/* =============================
+   Login & Kelimkar Forms
+============================= */
+.login-container,
+.form-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100% - 80px);
+  padding: 1rem;
+}
+
+.login-box,
+.form-box {
+  width: 100%;
+  max-width: 320px;
+  background: var(--white);
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.login-box h1,
+.form-box h2 {
+  margin-bottom: 1rem;
+  color: var(--dark-blue);
+}
+
+/* Inputs & Selects */
+.login-box input,
+.form-box input,
+.form-box select {
+  width: 100%;
+  padding: 0.6rem;
+  margin: 0.5rem 0;
+  border: 2px solid var(--grey-300);
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.login-box input:focus,
+.form-box input:focus,
+.form-box select:focus {
+  outline: none;
+  border-color: var(--light-blue);
+  box-shadow: 0 0 0 3px rgba(91,141,239,0.4);
+}
+
+/* Buttons */
+.login-box button,
+.form-box button {
+  width: 100%;
+  padding: 0.75rem;
+  margin-top: 1rem;
+  background: var(--dark-blue);
+  color: var(--white);
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.login-box button:hover,
+.form-box button:hover {
+  background: var(--light-blue);
+}
+
+/* Status Messages */
+.status {
+  margin-top: 0.75rem;
+  font-weight: bold;
+}
+.status.error {
+  color: var(--error-red);
+}
+.status.ok {
+  color: green;
+}
+
+/* =============================
+   Tables for Stankar & Nadrizeny
+============================= */
+/* kontejner pro tabulku center + scroll */
+.table-container {
+  overflow-x: auto;
+}
+
+/* vnitřní box */
+.container h1 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  background: var(--dark-blue);
+  color: var(--white);
+  padding: 0.75rem;
+  border-radius: 4px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--white);
+  color: #000;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  table-layout: fixed;
+}
+
+th, td {
+  white-space: normal;    /* teď se text zalomí */
+  word-wrap: break-word;  /* přelom slova pokud je třeba */
+  padding: 0.75rem;
+}
+
+/* hlavička tabulky */
+th {
+  background: var(--dark-blue);
+  color: var(--white);
+}
+
+/* zebra-striping */
+tr:nth-child(even) {
+  background: var(--grey-100);
+}
+
+th:nth-child(1),
+td:nth-child(1),
+th:nth-child(3),
+td:nth-child(3),
+th:nth-child(4),
+td:nth-child(4),
+th:nth-child(5),
+td:nth-child(5) {
+  width: auto !important;
+}
+/* tlačítko potvrzení ve stankar.html */
+button.confirm {
+  padding: 0.4rem 0.6rem;
+  background: var(--dark-blue);
+  color: var(--white);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+button.confirm:hover {
+  background: var(--light-blue);
+}
+
+/* =============================
+   Responsive tweaks
+============================= */
+@media (max-width: 600px) {
+  .container,
+  .login-box,
+  .form-box {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+  th, td {
+    padding: 0.4rem;
+  }
+  .site-header .logo {
+    max-height: 40px;
+  }
+}
+
+/* ===== Logout Button ===== */
+.logout-btn {
+  margin-left: auto;              /* roztlačí tlačítko doprava */
+  padding: 0.4rem 0.8rem;
+  background: var(--error-red);   /* červená z root */
+  color: var(--white);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+.logout-btn:hover {
+  background: #bf1e1e;
+}
+/* upravená hlavička */
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* vše vlevo */
+  padding: 1rem;
+  background: var(--dark-blue);
+}
+
+/* logout tlačítko vlevo */
+.logout-btn {
+  margin: 0;
+}
+
+/* jméno uživatele vedle tlačítka */
+.user-name {
+  margin-left: 0.5rem;
+  color: var(--white);
+  font-weight: bold;
+}
+
+/* logo napravo */
+.site-header .logo {
+  margin-left: auto;
+  max-height: 50px;
+  filter: brightness(0) invert(1);
+}

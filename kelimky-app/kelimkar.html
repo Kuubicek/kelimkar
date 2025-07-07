@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#004F9E">
+
+  <title>Kelímkář – Odevzdání kelímků</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js')
+      .catch(console.error);
+  }
+</script>
+
+<body>
+  <header class="site-header">
+  <img src="logo.png" alt="Logo" class="logo">
+    <button id="btnLogout" class="logout-btn">Odhlásit se</button>
+  <span id="userName" class="user-name">Načítám…</span>
+  
+</header>
+
+
+  <div class="form-container">
+    <div class="form-box">
+      <h2>Odevzdej kelímky</h2>
+      <select id="vendorSelect"><option>Načítám stánky…</option></select>
+      <input type="number" id="smallCups" placeholder="Počet malých kelímků (+/-)">
+      <input type="number" id="bigCups"   placeholder="Počet velkých kelímků (+/-)">
+      <button id="btnSubmit">Odeslat</button>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+<!-- Supabase client library -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script>
+  // 1) Inicializace
+  const supabaseClient = supabase.createClient(
+    'https://bdqyljmjdolpycjjmcmu.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcXlsam1qZG9scHljamptY211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NTM1MjUsImV4cCI6MjA2NzEyOTUyNX0.w5M01wvhI52x2vLy1G5rL7TWAYMCj1c3LptJXO3GfnI'
+  );
+
+  // 2) Po načtení DOM
+  window.addEventListener('DOMContentLoaded', async () => {
+    // 2a) Zobraz jméno přihlášeného kelímkáře
+    const { data: { session }, error: sessErr } =
+      await supabaseClient.auth.getSession();
+    if (!sessErr && session) {
+      const uid = session.user.id;
+      const { data: profile } = await supabaseClient
+        .from('profiles').select('name').eq('id', uid).single();
+      document.getElementById('userName').textContent =
+        profile?.name ?? 'Uživatel';
+    }
+
+    // 2b) Logout
+    document.getElementById('btnLogout')
+      .addEventListener('click', async () => {
+        await supabaseClient.auth.signOut();
+        window.location.href = 'index.html';
+      });
+
+    // 2c) Načti dropdown stánků
+    await loadVendors();
+  });
+
+  // 3) Původní funkce pro kelímkáře
+  async function loadVendors() {
+    const sel = document.getElementById('vendorSelect');
+    const { data: vendors, error } = await supabaseClient
+      .from('profiles')
+      .select('name')
+      .eq('role', 'stankar');
+    if (error || !vendors) {
+      sel.innerHTML = '<option>Chyba načtení</option>';
+      return;
+    }
+    sel.innerHTML = vendors.map(v => `<option>${v.name}</option>`).join('');
+  }
+
+  document.getElementById('btnSubmit')
+    .addEventListener('click', async () => {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = '';
+
+      // inputs
+      const vendor = document.getElementById('vendorSelect').value;
+      const small  = parseInt(document.getElementById('smallCups').value) || 0;
+      const big    = parseInt(document.getElementById('bigCups').value)   || 0;
+
+      try {
+        // zjisti jméno kelímkáře
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const userId = session.user.id;
+        const { data: profile } = await supabaseClient
+          .from('profiles').select('name').eq('id', userId).single();
+        const kelimkarName = profile.name;
+
+        // vlož transakci
+        const { error } = await supabaseClient
+          .from('transactions')
+          .insert([{
+            zamestnanec: kelimkarName,
+            stankar:      vendor,
+            typ_vymeny:   'O+V',
+            male_kelimky: small,
+            velke_kelimky: big,
+            status:       'čeká'
+          }]);
+        if (error) throw error;
+
+        statusEl.className = 'status ok';
+        statusEl.textContent = '✅ Odesláno';
+        document.getElementById('smallCups').value = '';
+        document.getElementById('bigCups').value   = '';
+      } catch (e) {
+        console.error(e);
+        statusEl.className = 'status error';
+        statusEl.textContent = '❌ Chyba: ' + e.message;
+      }
+    });
+</script>
+
+</body>
+</html>

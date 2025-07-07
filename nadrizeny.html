@@ -4,8 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#004F9E">
-
+  <meta name="theme-color" content="#212050">
   <title>Nadřízený – Historie transakcí</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -19,15 +18,30 @@
 <body>
   <header class="site-header">
     <img src="https://www.msul.cz/wp-content/uploads/2023/02/logo-svg.svg" alt="Logo" class="logo">
-  <button id="btnLogout" class="logout-btn">Odhlásit se</button>
-  <span id="userName" class="user-name">Načítám…</span>
-  
-</header>
-
+    <button id="btnLogout" class="logout-btn">Odhlásit se</button>
+    <span id="userName" class="user-name">Načítám…</span>
+  </header>
 
   <div class="table-container">
     <div class="container">
       <h1>Historie</h1>
+
+      <div class="filter-container">
+        <label for="stankarSelect">Stánkař:</label>
+        <select id="stankarSelect">
+          <option value="">Všichni</option>
+        </select>
+
+        <label for="fromDate">Od:</label>
+        <input type="date" id="fromDate">
+
+        <label for="toDate">Do:</label>
+        <input type="date" id="toDate">
+
+        <button id="btnFilter">Filtrovat</button>
+        <button id="btnExport">Export</button>
+      </div>
+
       <div id="status" class="status ok">Načítám data…</div>
       <table id="transactions-table" style="display:none;">
         <thead>
@@ -47,61 +61,85 @@
     </div>
   </div>
 
-    <!-- Supabase client library -->
+  <!-- Supabase + SheetJS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-  <!-- Společný skript pro všechny role -->
   <script>
-    // 1) Inicializace Supabase klienta
     const supabaseClient = supabase.createClient(
       'https://bdqyljmjdolpycjjmcmu.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcXlsam1qZG9scHljamptY211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NTM1MjUsImV4cCI6MjA2NzEyOTUyNX0.w5M01wvhI52x2vLy1G5rL7TWAYMCj1c3LptJXO3GfnI'
     );
 
-    // 2) Po načtení DOM
     window.addEventListener('DOMContentLoaded', async () => {
-      // 2a) Načti session a vyplň jméno uživatele
-      const { data:{ session }, error: sessErr } =
-        await supabaseClient.auth.getSession();
+      const { data:{ session }, error: sessErr } = await supabaseClient.auth.getSession();
       if (!sessErr && session) {
         const uid = session.user.id;
         const { data: profile } = await supabaseClient
           .from('profiles').select('name').eq('id', uid).single();
-        document.getElementById('userName').textContent =
-          profile?.name ?? 'Uživatel';
+        document.getElementById('userName').textContent = profile?.name ?? 'Uživatel';
       }
 
-      // 2b) Nastav logout tlačítko
-      document.getElementById('btnLogout')
-        .addEventListener('click', async () => {
-          await supabaseClient.auth.signOut();
-          window.location.href = 'index.html';
-        });
+      document.getElementById('btnLogout').addEventListener('click', async () => {
+        await supabaseClient.auth.signOut();
+        window.location.href = 'index.html';
+      });
 
-      // 2c) A pak zavolej načtení transakcí
-      loadTransactions();
+      await loadStankars();
+      await loadTransactions();
+
+      document.getElementById('btnFilter').addEventListener('click', loadTransactions);
+      document.getElementById('btnExport').addEventListener('click', exportToExcel);
     });
 
-    // 3) Funkce na načtení a vykreslení historie
+    async function loadStankars() {
+      const sel = document.getElementById('stankarSelect');
+      const { data: stankars, error } = await supabaseClient
+        .from('profiles').select('name').eq('role', 'stankar');
+
+      if (error) {
+        console.error(error);
+        sel.innerHTML = '<option>Chyba načtení</option>';
+        return;
+      }
+
+      sel.innerHTML += stankars.map(s => `<option>${s.name}</option>`).join('');
+    }
+
     async function loadTransactions() {
       const statusEl = document.getElementById('status');
-      const table    = document.getElementById('transactions-table');
-      const tbody    = table.querySelector('tbody');
+      const table = document.getElementById('transactions-table');
+      const tbody = table.querySelector('tbody');
+
+      const selectedStankar = document.getElementById('stankarSelect').value;
+      const fromDate = document.getElementById('fromDate').value;
+      const toDate = document.getElementById('toDate').value;
+
+      let query = supabaseClient.from('transactions').select('*');
+
+      if (selectedStankar) {
+        query = query.eq('stankar', selectedStankar);
+      }
+      if (fromDate) {
+        query = query.gte('timestamp', fromDate + 'T00:00:00');
+      }
+      if (toDate) {
+        query = query.lte('timestamp', toDate + 'T23:59:59');
+      }
 
       try {
-        const { data, error } = await supabaseClient
-          .from('transactions')
-          .select('*')
-          .order('timestamp', { ascending: false });
+        const { data, error } = await query.order('timestamp', { ascending: false });
         if (error) throw error;
 
-        if (!data || data.length === 0) {
+        tbody.innerHTML = '';
+        if (!data.length) {
           statusEl.textContent = 'Žádné transakce.';
+          table.style.display = 'none';
           return;
         }
 
         statusEl.style.display = 'none';
-        table.style.display    = 'table';
+        table.style.display = 'table';
 
         data.forEach(tx => {
           const tr = document.createElement('tr');
@@ -110,8 +148,8 @@
             <td>${tx.zamestnanec}</td>
             <td>${tx.stankar}</td>
             <td>${tx.typ_vymeny}</td>
-            <td>${tx.male_kelimky}</td>
             <td>${tx.velke_kelimky}</td>
+            <td>${tx.male_kelimky}</td>
             <td>${new Date(tx.timestamp).toLocaleString('cs-CZ')}</td>
             <td>${tx.status}</td>
           `;
@@ -120,10 +158,45 @@
       } catch (e) {
         console.error(e);
         statusEl.textContent = '❌ ' + e.message;
-        statusEl.className   = 'status error';
+        statusEl.className = 'status error';
       }
     }
-  </script>
 
+    function exportToExcel() {
+      const table = document.getElementById('transactions-table');
+      const rows = table.querySelectorAll('tbody tr');
+
+      if (!rows.length) {
+        alert('⚠️ Není co exportovat.');
+        return;
+      }
+
+      let data = [
+        ["ID", "Zaměstnanec", "Stánkař", "Typ výměny", "Velkých", "Malých", "Čas", "Status"]
+      ];
+
+      let totalBig = 0, totalSmall = 0;
+
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const rowData = Array.from(cells).map(cell => cell.textContent);
+        data.push(rowData);
+
+        totalBig += parseInt(cells[4].textContent) || 0;
+        totalSmall += parseInt(cells[5].textContent) || 0;
+      });
+
+      // Přidat součty na konec
+      data.push([]);
+      data.push(["", "", "", "Celkem:", totalBig, totalSmall, "", ""]);
+
+      // Převést do Excelu
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      XLSX.utils.book_append_sheet(wb, ws, "Historie");
+
+      XLSX.writeFile(wb, "Kelímky_Historie.xlsx");
+    }
+  </script>
 </body>
 </html>

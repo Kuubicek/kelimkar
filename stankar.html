@@ -17,7 +17,7 @@
 
 <body>
   <header class="site-header">
-    <img src="logo.png" alt="Logo" class="logo">
+    <img src="https://www.msul.cz/wp-content/uploads/2023/02/logo-svg.svg" alt="Logo" class="logo">
     <button id="btnLogout" class="logout-btn">Odhlásit se</button>
     <span id="userName" class="user-name">Načítám…</span>
   </header>
@@ -25,7 +25,6 @@
   <div class="table-container">
     <div class="container">
       <h1>Potvrzení transakcí</h1>
-      <button id="btnRequestCups" class="alert-btn">🚨 Potřebuji kelímky</button>
       <div id="status" class="status ok">Načítám…</div>
       <table id="tx-table" style="display:none;">
         <thead>
@@ -49,7 +48,7 @@
   <script>
     const supabaseClient = supabase.createClient(
       'https://bdqyljmjdolpycjjmcmu.supabase.co',
-      'tvůj-public-anon-key'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcXlsam1qZG9scHljamptY211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NTM1MjUsImV4cCI6MjA2NzEyOTUyNX0.w5M01wvhI52x2vLy1G5rL7TWAYMCj1c3LptJXO3GfnI'
     );
 
     window.addEventListener('DOMContentLoaded', async () => {
@@ -60,19 +59,6 @@
           .from('profiles').select('name').eq('id', uid).single();
         document.getElementById('userName').textContent =
           profile?.name ?? 'Uživatel';
-
-        document.getElementById('btnRequestCups').addEventListener('click', async () => {
-          try {
-            const { error } = await supabaseClient
-              .from('requests')
-              .insert([{ stankar: profile.name, status: 'čeká' }]);
-            if (error) throw error;
-            alert('✅ Žádost o kelímky byla odeslána.');
-          } catch (e) {
-            console.error('❌ Supabase insert error:', e);
-            alert('❌ Chyba při odesílání žádosti.');
-          }
-        });
       }
 
       document.getElementById('btnLogout')
@@ -134,7 +120,9 @@
               .update({ status: 'potvrzeno' })
               .eq('id', id);
             tbody.innerHTML = '';
-            loadForStankar();
+            table.style.display = 'none';
+            statusEl.style.display = 'block';
+            statusEl.textContent = '✅ Všechny žádosti potvrzeny.';
           });
         });
       } catch (e) {

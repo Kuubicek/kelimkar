@@ -3,21 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#212050">
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#212050" />
   <title>Kelímkář – Odevzdání kelímků</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js')
-      .catch(console.error);
-  }
-</script>
-
 <body>
   <header class="site-header">
-    <img src="https://www.msul.cz/wp-content/uploads/2023/02/logo-svg.svg" alt="Logo" class="logo">
+    <img src="https://www.msul.cz/wp-content/uploads/2023/02/logo-svg.svg" alt="Logo" class="logo" />
     <button id="btnLogout" class="logout-btn">Odhlásit se</button>
     <span id="userName" class="user-name">Načítám…</span>
   </header>
@@ -25,9 +18,25 @@
   <div class="form-container">
     <div class="form-box">
       <h2>Odevzdej kelímky</h2>
-      <select id="vendorSelect"><option>Načítám stánky…</option></select>
-      <input type="number" id="smallCups" placeholder="Počet malých kelímků (+/-)">
-      <input type="number" id="bigCups" placeholder="Počet velkých kelímků (+/-)">
+      <select id="vendorSelect">
+        <option>Načítám stánky…</option>
+      </select>
+      <input
+        type="number"
+        id="smallCups"
+        placeholder="Počet malých kelímků"
+        inputmode="numeric"
+        pattern="\d*"
+        min="0"
+      />
+      <input
+        type="number"
+        id="bigCups"
+        placeholder="Počet velkých kelímků"
+        inputmode="numeric"
+        pattern="\d*"
+        min="0"
+      />
       <button id="btnSubmit">Odeslat</button>
       <div id="status" class="status"></div>
     </div>
@@ -35,15 +44,21 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script>
+    // Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js').catch(console.error);
+    }
+
+    // Inicializace Supabase
     const supabaseClient = supabase.createClient(
       'https://bdqyljmjdolpycjjmcmu.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcXlsam1qZG9scHljamptY211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NTM1MjUsImV4cCI6MjA2NzEyOTUyNX0.w5M01wvhI52x2vLy1G5rL7TWAYMCj1c3LptJXO3GfnI'
-
     );
 
     window.addEventListener('DOMContentLoaded', async () => {
-      const { data: { session }, error } = await supabaseClient.auth.getSession();
-      if (!error && session) {
+      // Načtení jména uživatele
+      const { data: { session }, error: sessErr } = await supabaseClient.auth.getSession();
+      if (!sessErr && session) {
         const uid = session.user.id;
         const { data: profile } = await supabaseClient
           .from('profiles').select('name').eq('id', uid).single();
@@ -51,12 +66,13 @@
           profile?.name ?? 'Uživatel';
       }
 
-      document.getElementById('btnLogout')
-        .addEventListener('click', async () => {
-          await supabaseClient.auth.signOut();
-          window.location.href = 'index.html';
-        });
+      // Logout
+      document.getElementById('btnLogout').addEventListener('click', async () => {
+        await supabaseClient.auth.signOut();
+        window.location.href = 'index.html';
+      });
 
+      // Načtení stánkařů
       await loadVendors();
     });
 
@@ -73,49 +89,67 @@
       sel.innerHTML = vendors.map(v => `<option>${v.name}</option>`).join('');
     }
 
-    document.getElementById('btnSubmit')
-      .addEventListener('click', async () => {
-        const statusEl = document.getElementById('status');
-        statusEl.textContent = '';
+    // Odeslat transakci
+    document.getElementById('btnSubmit').addEventListener('click', async () => {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = '';
 
-        const vendor = document.getElementById('vendorSelect').value;
-        const small = parseInt(document.getElementById('smallCups').value) || 0;
-        const big = parseInt(document.getElementById('bigCups').value) || 0;
+      const vendor = document.getElementById('vendorSelect').value;
+      const small  = parseInt(document.getElementById('smallCups').value) || 0;
+      const big    = parseInt(document.getElementById('bigCups').value)   || 0;
 
-        if (small === 0 && big === 0) {
-          alert('⚠️ Zadej počet malých nebo velkých kelímků');
+      if (small === 0 && big === 0) {
+        alert('⚠️ Zadej počet malých nebo velkých kelímků');
+        return;
+      }
+
+      try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const userId = session.user.id;
+        const { data: profile } = await supabaseClient
+          .from('profiles').select('name').eq('id', userId).single();
+        const kelimkarName = profile.name;
+
+        const { error } = await supabaseClient
+          .from('transactions')
+          .insert([{
+            zamestnanec:  kelimkarName,
+            stankar:       vendor,
+            typ_vymeny:    'O+V',
+            male_kelimky:  small,
+            velke_kelimky:  big,
+            status:        'čeká'
+          }]);
+        if (error) throw error;
+
+        statusEl.className = 'status ok';
+        statusEl.textContent = '✅ Odesláno';
+        document.getElementById('smallCups').value = '';
+        document.getElementById('bigCups').value   = '';
+      } catch (e) {
+        console.error(e);
+        statusEl.className = 'status error';
+        statusEl.textContent = '❌ Chyba: ' + e.message;
+      }
+    });
+
+    // Zabránit zadání všeho jiného než čísla (včetně mínus)
+    document.querySelectorAll('input[type="number"]').forEach(input => {
+      input.addEventListener('keydown', e => {
+        if (e.key === '-' || e.key === '+') {
+          e.preventDefault();
           return;
         }
-
-        try {
-          const { data: { session } } = await supabaseClient.auth.getSession();
-          const userId = session.user.id;
-          const { data: profile } = await supabaseClient
-            .from('profiles').select('name').eq('id', userId).single();
-          const kelimkarName = profile.name;
-
-          const { error } = await supabaseClient
-            .from('transactions')
-            .insert([{
-              zamestnanec: kelimkarName,
-              stankar: vendor,
-              typ_vymeny: 'O+V',
-              male_kelimky: small,
-              velke_kelimky: big,
-              status: 'čeká'
-            }]);
-          if (error) throw error;
-
-          statusEl.className = 'status ok';
-          statusEl.textContent = '✅ Odesláno';
-          document.getElementById('smallCups').value = '';
-          document.getElementById('bigCups').value = '';
-        } catch (e) {
-          console.error(e);
-          statusEl.className = 'status error';
-          statusEl.textContent = '❌ Chyba: ' + e.message;
+        if (!/[0-9]/.test(e.key) &&
+            !['Backspace','Tab','ArrowLeft','ArrowRight','Delete'].includes(e.key)) {
+          e.preventDefault();
         }
       });
+      input.addEventListener('paste', e => {
+        const text = (e.clipboardData || window.clipboardData).getData('text');
+        if (!/^\d+$/.test(text)) e.preventDefault();
+      });
+    });
   </script>
 </body>
 </html>

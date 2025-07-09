@@ -7,17 +7,78 @@
   --error-red:    #DC2626;
 }
 
-/* ============= Reset & base ============= */
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 body, html {
-  height: 100%; width: 100%;
+  height: 100%;
+  width: 100%;
   font-family: Arial, sans-serif;
   background: var(--dark-blue);
   color: var(--white);
   line-height: 1.4;
 }
 
-/* ============= Header (logo) ============= */
+/* ===== LOGIN (index.html) ===== */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: calc(100vh - 80px);
+  padding: 1rem;
+}
+.login-box {
+  width: 100%;
+  max-width: 320px;
+  background: var(--white);
+  color: #000;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+.login-box h1 {
+  margin-bottom: 1rem;
+  color: var(--dark-blue);
+}
+.login-box input {
+  width: 100%;
+  padding: 0.6rem;
+  margin: 0.5rem 0;
+  border: 2px solid var(--grey-300);
+  border-radius: 4px;
+  font-size: 1rem;
+}
+.login-box input:focus {
+  outline: none;
+  border-color: var(--light-blue);
+  box-shadow: 0 0 0 3px rgba(91,141,239,0.4);
+}
+.login-box button {
+  width: 100%;
+  padding: 0.75rem;
+  margin-top: 1rem;
+  background: var(--dark-blue);
+  color: var(--white);
+  border: none;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.login-box button:hover {
+  background: var(--light-blue);
+}
+.login-box .status {
+  margin-top: 0.75rem;
+  font-weight: bold;
+  color: var(--error-red);
+}
+
+/* ===== HEADER ===== */
 .site-header {
   display: flex;
   align-items: center;
@@ -30,7 +91,7 @@ body, html {
   filter: brightness(0) invert(1);
 }
 
-/* ============= Container common ============= */
+/* ===== CONTAINER ===== */
 .container {
   width: 95%;
   max-width: 1100px;
@@ -41,82 +102,6 @@ body, html {
   box-shadow: 0 8px 16px rgba(0,0,0,0.2);
   padding: 1rem;
 }
-
-/* ============= Login & Kelimkar Forms ============= */
-.login-container,
-.form-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: calc(100vh - 60px);
-  padding: 1rem;
-}
-.login-box,
-.form-box {
-  width: 100%;
-  max-width: 360px;
-  background: var(--white);
-  border-radius: 8px;
-  padding: 2rem;
-  text-align: center;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-}
-.login-box h1,
-.form-box h2 {
-  margin-bottom: 1rem;
-  color: var(--dark-blue);
-  font-size: 1.75rem;
-}
-
-/* Inputs */
-.login-box input,
-.form-box input,
-.form-box select {
-  width: 100%;
-  padding: 0.75rem;
-  margin: 0.5rem 0;
-  border: 2px solid var(--grey-300);
-  border-radius: 4px;
-  font-size: 1rem;
-}
-.login-box input:focus,
-.form-box input:focus,
-.form-box select:focus {
-  outline: none;
-  border-color: var(--light-blue);
-  box-shadow: 0 0 0 3px rgba(91,141,239,0.4);
-}
-
-/* Buttons */
-.login-box button,
-.form-box button {
-  width: 100%;
-  padding: 0.75rem;
-  margin-top: 1rem;
-  background: var(--dark-blue);
-  color: var(--white);
-  border: none;
-  border-radius: 4px;
-  font-weight: bold;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background 0.3s;
-}
-.login-box button:hover,
-.form-box button:hover {
-  background: var(--light-blue);
-}
-
-/* Status messages */
-.status {
-  margin-top: 0.75rem;
-  font-weight: bold;
-  min-height: 1.2em;
-}
-.status.error { color: var(--error-red); }
-.status.ok    { color: green; }
-
-/* ============= Nadrizeny: H1 & filter panel & table ============= */
 .container h1 {
   font-size: 1.5rem;
   margin-bottom: 1rem;
@@ -124,10 +109,18 @@ body, html {
   color: var(--white);
   padding: 0.75rem 1rem;
   border-radius: 8px;
-  display: block; text-align: left;
+  text-align: left;
 }
 
-/* filter panel */
+/* ===== STATUS ===== */
+.status {
+  margin-top: 0.75rem;
+  font-weight: bold;
+}
+.status.error { color: var(--error-red); }
+.status.ok    { color: green; }
+
+/* ===== FILTER ===== */
 .filter-container {
   display: flex;
   flex-wrap: wrap;
@@ -147,7 +140,7 @@ body, html {
 .filter-container select,
 .filter-container input[type="date"] {
   padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--grey-300);
   border-radius: 6px;
   font-size: 0.95rem;
   background: #fff;
@@ -168,16 +161,11 @@ body, html {
   background: var(--dark-blue);
 }
 
-/* table */
-.table-container { overflow-x: auto; }
-
-@media (min-width: 900px) {
-  table {
-    width: 100%;
-    min-width: unset;
-  }
+/* ===== TABLE ===== */
+.table-container {
+  overflow-x: auto;               /* swipe uvnitř bílého boxu */
+  -webkit-overflow-scrolling: touch;
 }
-
 table {
   width: 100%;
   min-width: 900px;
@@ -197,16 +185,38 @@ th, td {
   text-align: center;
   vertical-align: middle;
 }
-th:nth-child(1),
-td:nth-child(1) { width: 50px; }
-th:nth-child(2),
-td:nth-child(2) { width: 150px; min-width: 200px; }
-th:nth-child(6),
-td:nth-child(6) { width: 180px; }
-th { background: var(--dark-blue); color: var(--white); }
-tr:nth-child(even) { background: var(--grey-100); }
+th:nth-child(1), td:nth-child(1) { width: 50px; }
+th:nth-child(2), td:nth-child(2) { width: 150px; min-width: 200px; }
+th:nth-child(3), td:nth-child(3) { width: 150px; }
+th:nth-child(4), td:nth-child(4) { width: 100px; }
+th:nth-child(5), td:nth-child(5) { width: 80px; }
+th:nth-child(6), td:nth-child(6) { width: 80px; }
+/* Čas (7.) */
+th:nth-child(7), td:nth-child(7) {
+  min-width: 200px;
+  width: auto;
+  text-overflow: clip;
+  overflow: visible;
+}
+/* Status (8.) */
+th:nth-child(8), td:nth-child(8) {
+  width: 100px;
+  white-space: nowrap;
+}
+/* Akce (9.) */
+th:nth-child(9), td:nth-child(9) {
+  width: 80px;
+  white-space: nowrap;
+}
+th {
+  background: var(--dark-blue);
+  color: var(--white);
+}
+tr:nth-child(even) {
+  background: var(--grey-100);
+}
 
-/* confirm btn */
+/* ===== BUTTONS ===== */
 button.confirm {
   padding: 0.4rem 0.6rem;
   background: var(--dark-blue);
@@ -215,11 +225,12 @@ button.confirm {
   border-radius: 4px;
   cursor: pointer;
 }
-button.confirm:hover { background: var(--light-blue); }
-
+button.confirm:hover {
+  background: var(--light-blue);
+}
 .logout-btn {
-  margin-left: auto;      /* stávající */
-  margin-right: 1rem;     /* ← nový mezera za tlačítkem */
+  margin-left: auto;
+  margin-right: 1rem;
   padding: 0.4rem 0.8rem;
   background: var(--error-red);
   color: var(--white);
@@ -228,16 +239,17 @@ button.confirm:hover { background: var(--light-blue); }
   cursor: pointer;
   transition: background 0.2s;
 }
+.logout-btn:hover {
+  background: #bf1e1e;
+}
 
-.logout-btn:hover { background: #bf1e1e; }
-
-/* responsive tweaks */
+/* ===== MOBILE (<600px) ===== */
 @media (max-width: 600px) {
   .container { padding: 1rem; }
-  th, td { padding: 0.4rem; }
+  th, td { padding: 0.4rem; font-size: 0.9rem; }
   .site-header .logo { max-height: 40px; }
-  table { font-size: 0.9rem; }
 
+  /* filtrovací panel stack */
   .filter-container {
     flex-direction: column;
     align-items: stretch;
@@ -248,11 +260,19 @@ button.confirm:hover { background: var(--light-blue); }
   .filter-container button {
     width: 100%;
   }
-  .filter-container button { margin-top: 0.5rem; }
-  th { font-size: 0.8rem; }
-  td { font-size: 0.8rem; }
-}
+  .filter-container button {
+    margin-top: 0.5rem;
+  }
 
-@media (max-width: 900px) {
-  table { width: 1100px; }
+  /* tabulka jako blok pro swipe */
+  table {
+    display: block !important;
+    width: auto !important;
+    min-width: 100%;
+    table-layout: auto;
+  }
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }

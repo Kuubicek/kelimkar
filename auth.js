@@ -15,6 +15,24 @@ window.supabaseClient = supabase.createClient(
   }
 );
 
+// ✅ TADY PŘIDÁŠ FALLBACK NA OBNOVU SESSION
+window.recoverSession = async function() {
+  const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+  if (!session) {
+    console.log("No active session, trying to refresh...");
+    const { data, error } = await supabaseClient.auth.refreshSession();
+    if (error) {
+      console.error("Session refresh failed:", error.message);
+      window.location.replace('index.html'); // Pošle zpět na login
+    } else {
+      console.log("Session recovered successfully:", data.session);
+    }
+  } else {
+    console.log("Session is still active:", session);
+  }
+};
+
 // 2) Přesměruje z loginu, pokud už session je
 window.redirectIfLoggedIn = async function() {
   const { data:{ session } } = await supabaseClient.auth.getSession();

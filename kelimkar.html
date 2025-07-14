@@ -50,12 +50,13 @@
     try {
       const profile = await requireAuth();
       console.log("✅ Authenticated as", profile.role);
-      // pokračuj s načítáním UI
+      // Pokud chceš, načti další kód pro UI tady
     } catch (e) {
       console.warn("❌ Not authenticated, redirecting to login");
     }
   });
 </script>
+
 
   <script>
     // Inicializace Supabase klienta

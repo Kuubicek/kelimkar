@@ -33,14 +33,16 @@
     </div>
   </div>
 
-  <!-- B) Obnov session, hned přesměruj přihlášené a až pak řeš login -->
+  <!-- B) recoverSession + redirectIfLoggedIn + login handler -->
   <script>
     recoverSession().then(() => {
-      // 1) Přesměruj přihlášené uživatele
+      console.log('✈️ after recoverSession');
+      // Přihlášení už proběhlo? Přejdi pryč.
       redirectIfLoggedIn();
 
-      // 2) Pokud jsi nepřihlášený, přidej listener na tlačítko
-      document.getElementById('btnLogin').addEventListener('click', async () => {
+      // Pokud tu jsi, session neexistuje → načti login handler
+      const btn = document.getElementById('btnLogin');
+      btn.addEventListener('click', async () => {
         const statusEl = document.getElementById('status');
         statusEl.textContent = '';
         statusEl.className = 'status';
@@ -57,16 +59,12 @@
           if (error) throw error;
 
           const { data: profile } = await supabaseClient
-            .from('profiles')
-            .select('role')
-            .eq('id', data.user.id)
-            .single();
+            .from('profiles').select('role').eq('id', data.user.id).single();
 
           if      (profile.role === 'kelimkar')  window.location.href = 'kelimkar.html';
           else if (profile.role === 'stankar')   window.location.href = 'stankar.html';
           else if (profile.role === 'nadrizeny') window.location.href = 'nadrizeny.html';
           else throw new Error('Neznámá role');
-
         } catch (e) {
           console.error(e);
           statusEl.className = 'status error';

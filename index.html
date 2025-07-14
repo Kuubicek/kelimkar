@@ -29,6 +29,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="auth.js"></script>
   <script>
+  recoverSession();
+  </script>
+
+  <script>
     // Service worker registrace
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js').catch(console.error);

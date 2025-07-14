@@ -2,93 +2,79 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
 
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#212050" />
+
+  <!-- A) Načti localForage, Supabase a auth.js – jen jednou -->
+  <script src="https://cdn.jsdelivr.net/npm/localforage/dist/localforage.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="auth.js"></script>
+
   <title>Kelímky App – Login</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="site-header">
     <img src="https://www.msul.cz/wp-content/uploads/2023/02/logo-svg.svg"
-         alt="Logo Městských služeb"
-         class="logo" />
+         alt="Logo Městských služeb" class="logo" />
   </header>
 
   <div class="login-container">
     <div class="login-box">
       <h1>Přihlášení</h1>
-      <input type="email"    id="email"    placeholder="Email"    required />
-      <input type="password" id="password" placeholder="Heslo"    required />
+      <input type="email"    id="email"    placeholder="Email" required />
+      <input type="password" id="password" placeholder="Heslo" required />
       <button id="btnLogin">Přihlásit se</button>
       <div id="status" class="status"></div>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script src="auth.js"></script>
+  <!-- B) Recover session, redirectIfLoggedIn a login handler -->
   <script>
-  recoverSession().then(async () => {
-    try {
-      const profile = await requireAuth();
-      console.log("✅ Authenticated as", profile.role);
-      // Pokud chceš, načti další kód pro UI tady
-    } catch (e) {
-      console.warn("❌ Not authenticated, redirecting to login");
-    }
-  });
-</script>
+    recoverSession().then(async () => {
+      redirectIfLoggedIn();
 
+      document.getElementById('btnLogin')
+        .addEventListener('click', async () => {
+          const statusEl = document.getElementById('status');
+          statusEl.textContent = '';
 
+          const email    = document.getElementById('email').value.trim();
+          const password = document.getElementById('password').value.trim();
 
+          if (!email || !password) {
+            statusEl.className = 'status error';
+            return statusEl.textContent = '❌ Vyplňte email i heslo';
+          }
+
+          try {
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+
+            const { data: profile } = await supabaseClient
+              .from('profiles').select('role').eq('id', data.user.id).single();
+
+            if      (profile.role === 'kelimkar')  window.location.href = 'kelimkar.html';
+            else if (profile.role === 'stankar')   window.location.href = 'stankar.html';
+            else if (profile.role === 'nadrizeny') window.location.href = 'nadrizeny.html';
+            else throw new Error('Neznámá role');
+
+          } catch (e) {
+            console.error(e);
+            statusEl.className = 'status error';
+            statusEl.textContent = '❌ Přihlášení selhalo';
+          }
+        });
+    });
+  </script>
+
+  <!-- Service worker registrace – může zůstat dole -->
   <script>
-    // Service worker registrace
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js').catch(console.error);
     }
-
-    // Inicializace Supabase klienta
-    const supabaseClient = supabase.createClient(
-      'https://bdqyljmjdolpycjjmcmu.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcXlsam1qZG9scHljamptY211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NTM1MjUsImV4cCI6MjA2NzEyOTUyNX0.w5M01wvhI52x2vLy1G5rL7TWAYMCj1c3LptJXO3GfnI' // tvůj anon klíč
-    );
-
-    // Přihlášení
-    document.getElementById('btnLogin').addEventListener('click', async () => {
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value.trim();
-      const statusEl = document.getElementById('status');
-      statusEl.textContent = '';
-
-      if (!email || !password) {
-        statusEl.className = 'status error';
-        statusEl.textContent = '❌ Vyplňte email i heslo';
-        return;
-      }
-
-      try {
-        const { error, data } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-
-        // Načti roli a přesměruj
-        const { data: profile } = await supabaseClient
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .single();
-
-        if (profile.role === 'kelimkar')     window.location.href = 'kelimkar.html';
-        else if (profile.role === 'stankar')  window.location.href = 'stankar.html';
-        else if (profile.role === 'nadrizeny')window.location.href = 'nadrizeny.html';
-        else throw new Error('Neznámá role');
-
-      } catch (e) {
-        console.error(e);
-        statusEl.className = 'status error';
-        statusEl.textContent = '❌ Přihlášení selhalo';
-      }
-    });
   </script>
 </body>
 </html>

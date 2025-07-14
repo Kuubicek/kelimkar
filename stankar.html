@@ -7,6 +7,11 @@
   <meta name="theme-color" content="#212050" />
   <title>Stánkař – Potvrzení transakcí</title>
   <link rel="stylesheet" href="style.css" />
+
+  <!-- A) Načti localForage, Supabase a auth.js -->
+  <script src="https://cdn.jsdelivr.net/npm/localforage/dist/localforage.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="auth.js"></script>
 </head>
 <body>
   <header class="site-header">
@@ -15,23 +20,22 @@
     <span id="userName" class="user-name">Načítám…</span>
   </header>
 
-  
-    <div class="container">
-      <h1>Potvrzení transakcí</h1>
-      <div id="status" class="status ok">Načítám…</div>
-      <div class="table-container">
+  <div class="container">
+    <h1>Potvrzení transakcí</h1>
+    <div id="status" class="status ok">Načítám…</div>
+    <div class="table-container">
       <table id="tx-table" style="display:none;">
         <colgroup>
-    <col style="width:50px" />   <!-- ID -->
-    <col style="width:150px" />  <!-- Kelímkař -->
-    <col style="width:150px" />  <!-- Stánkař -->
-    <col style="width:100px" />  <!-- Typ výměny -->
-    <col style="width:80px" />   <!-- Malých -->
-    <col style="width:80px" />   <!-- Velkých -->
-    <col style="width:200px" />  <!-- Čas (dost místa i na minuty) -->
-    <col style="width:100px" />  <!-- Status -->
-    <col style="width:80px" />   <!-- Akce -->
-  </colgroup>
+          <col style="width:50px" />   <!-- ID -->
+          <col style="width:150px" />  <!-- Kelímkař -->
+          <col style="width:150px" />  <!-- Stánkař -->
+          <col style="width:100px" />  <!-- Typ výměny -->
+          <col style="width:80px" />   <!-- Malých -->
+          <col style="width:80px" />   <!-- Velkých -->
+          <col style="width:200px" />  <!-- Čas -->
+          <col style="width:100px" />  <!-- Status -->
+          <col style="width:80px" />   <!-- Akce -->
+        </colgroup>
         <thead>
           <tr>
             <th>ID</th>
@@ -47,60 +51,34 @@
         </thead>
         <tbody></tbody>
       </table>
-      </div>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script src="auth.js"></script>
+  <!-- B) recoverSession + requireAuth + init funkcí -->
   <script>
-  recoverSession().then(async () => {
-    try {
-      const profile = await requireAuth();
-      console.log("✅ Authenticated as", profile.role);
-      // Pokud chceš, načti další kód pro UI tady
-    } catch (e) {
-      console.warn("❌ Not authenticated, redirecting to login");
-    }
-  });
-</script>
+    recoverSession().then(async () => {
+      try {
+        // Ověř přihlášení a načti profil
+        const profile = await requireAuth();
+        console.log("✅ Logged in as", profile.role);
 
+        // Zobraz jméno
+        document.getElementById('userName').textContent = profile.name;
 
-  <script>
-    // Inicializace Supabase
-    const supabaseClient = supabase.createClient(
-      'https://bdqyljmjdolpycjjmcmu.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcXlsam1qZG9scHljamptY211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NTM1MjUsImV4cCI6MjA2NzEyOTUyNX0.w5M01wvhI52x2vLy1G5rL7TWAYMCj1c3LptJXO3GfnI'
+        // Logout handler
+        document.getElementById('btnLogout').addEventListener('click', async () => {
+          await supabaseClient.auth.signOut();
+          window.location.href = 'index.html';
+        });
 
-    );
-
-    window.addEventListener('DOMContentLoaded', async () => {
-      // session guard
-      const { data:{ session } } = await supabaseClient.auth.getSession();
-      if (!session) {
-        return window.location.href = 'index.html';
+        // Načti data pro stánkaře
+        await loadForStankar();
+      } catch (e) {
+        console.warn("❌ Not authenticated → redirecting to login");
       }
-
-      // zobraz jméno
-      const { data: profile } = await supabaseClient
-        .from('profiles').select('name').eq('id', session.user.id).single();
-      document.getElementById('userName').textContent = profile?.name ?? 'Uživatel';
-
-      // service worker
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js').catch(console.error);
-      }
-
-      // logout
-      document.getElementById('btnLogout').addEventListener('click', async () => {
-        await supabaseClient.auth.signOut();
-        window.location.href = 'index.html';
-      });
-
-      // načti data
-      await loadForStankar();
     });
 
+    // ==== PŮVODNÍ KÓD funkce loadForStankar() ====
     async function loadForStankar() {
       const statusEl = document.getElementById('status');
       const table    = document.getElementById('tx-table');
@@ -108,15 +86,16 @@
       tbody.innerHTML = '';
 
       try {
-        // zjisti jméno stánkaře
+        // Zjisti jméno stánkaře
+        const { data: sessionData } = await supabaseClient.auth.getSession();
         const { data: prof } = await supabaseClient
           .from('profiles')
           .select('name')
-          .eq('id', (await supabaseClient.auth.getSession()).data.session.user.id)
+          .eq('id', sessionData.user.id)
           .single();
         const stand = prof.name;
 
-        // načti všechny transakce (čeká + potvrzené)
+        // Načti transakce
         const { data: txs, error } = await supabaseClient
           .from('transactions')
           .select('*')
@@ -140,47 +119,41 @@
             <td>${tx.typ_vymeny}</td>
             <td>${tx.male_kelimky}</td>
             <td>${tx.velke_kelimky}</td>
-            <td>${new Date(tx.timestamp).toLocaleString('cs-CZ', {
-                day: '2-digit', month: '2-digit', year: 'numeric',
-                hour: '2-digit', minute: '2-digit', second: '2-digit'
-              })}</td>
+            <td>${new Date(tx.timestamp).toLocaleString('cs-CZ',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'})}</td>
             <td>${tx.status}</td>
-            <td>${
-              tx.status === 'čeká'
-                ? `<button class="confirm" data-id="${tx.id}">Potvrdit</button>`
-                : ''
-            }</td>
+            <td>${tx.status === 'čeká' ? `<button class="confirm" data-id="${tx.id}">Potvrdit</button>` : ''}</td>
           `;
           tbody.appendChild(tr);
         });
 
-        // potvrzení změní jen text, neodstraní řádek
-        tbody.querySelectorAll('button.confirm').forEach(b => {
-          b.addEventListener('click', async () => {
-            const id = b.dataset.id;
-            b.disabled = true;
+        // Potvrzení transakcí
+        tbody.querySelectorAll('button.confirm').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            btn.disabled = true;
             await supabaseClient
               .from('transactions')
               .update({ status: 'potvrzeno' })
               .eq('id', id);
-            const cell = b.closest('tr').querySelector('td:nth-child(8)');
+            const cell = btn.closest('tr').querySelector('td:nth-child(8)');
             cell.textContent = 'potvrzeno';
-            b.remove();
+            btn.remove();
           });
         });
-
       } catch (e) {
         console.error(e);
+        const statusEl = document.getElementById('status');
         statusEl.textContent = '❌ ' + e.message;
         statusEl.className   = 'status error';
       }
     }
   </script>
-</body>
-  <script>
-  document.addEventListener('DOMContentLoaded', async () => {
-    await recoverSession();
-  });
-</script>
 
+  <!-- Service Worker registrace -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js').catch(console.error);
+    }
+  </script>
+</body>
 </html>

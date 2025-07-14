@@ -8,6 +8,11 @@
   <title>Nadřízený – Historie výměn</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <!-- A) Načti localForage, Supabase a auth.js -->
+  <script src="https://cdn.jsdelivr.net/npm/localforage/dist/localforage.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="auth.js"></script>
 </head>
 <body>
   <header class="site-header">
@@ -55,67 +60,41 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script src="auth.js"></script>
+  <!-- B) recoverSession + requireAuth + init -->
   <script>
-  recoverSession().then(async () => {
-    try {
-      const profile = await requireAuth();
-      console.log("✅ Authenticated as", profile.role);
-      // Pokud chceš, načti další kód pro UI tady
-    } catch (e) {
-      console.warn("❌ Not authenticated, redirecting to login");
-    }
-  });
-</script>
+    recoverSession().then(async () => {
+      try {
+        // 1) Ověření a zisk profilu
+        const profile = await requireAuth();
+        console.log("✅ Logged in as", profile.role);
 
+        // 2) Zobrazení jména
+        document.getElementById('userName').textContent = profile.name;
 
-  <script>
-    // 0) Supabase
-    const supabaseClient = supabase.createClient(
-      'https://bdqyljmjdolpycjjmcmu.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcXlsam1qZG9scHljamptY211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NTM1MjUsImV4cCI6MjA2NzEyOTUyNX0.w5M01wvhI52x2vLy1G5rL7TWAYMCj1c3LptJXO3GfnI'
-
-    );
-
-    // držíme všechna i právě zobrazená data
-    let allTransactions = [];
-    let displayedTransactions = [];
-
-    window.addEventListener('DOMContentLoaded', async () => {
-      // 1) Session guard
-      const { data:{ session }, error } = await supabaseClient.auth.getSession();
-      if (error || !session) {
-        return window.location.href = 'index.html';
-      }
-
-      // 2) Zobraz jméno
-      const { data: profile } = await supabaseClient
-        .from('profiles').select('name').eq('id', session.user.id).single();
-      document.getElementById('userName').textContent = profile?.name ?? 'Uživatel';
-
-      // 3) Service worker
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js').catch(console.error);
-      }
-
-      // 4) Logout
-      document.getElementById('btnLogout')
-        .addEventListener('click', async () => {
+        // 3) Logout handler
+        document.getElementById('btnLogout').addEventListener('click', async () => {
           await supabaseClient.auth.signOut();
           window.location.href = 'index.html';
         });
 
-      // 5) Přepínače filtr/export
-      document.getElementById('btnFilter')
-        .addEventListener('click', applyFilter);
-      document.getElementById('btnExport')
-        .addEventListener('click', exportToExcel);
-
-      // 6) Načti dropdown i historii
-      await loadStankari();
-      await loadHistory();
+        // 4) Init funkce
+        await loadStankari();
+        await loadHistory();
+        document.getElementById('btnFilter').addEventListener('click', applyFilter);
+        document.getElementById('btnExport').addEventListener('click', exportToExcel);
+      } catch (e) {
+        console.warn("❌ Not authenticated → redirecting to login");
+      }
     });
+
+    // ==== PŮVODNÍ KÓD ====
+    const supabaseClient = supabase.createClient(
+      'https://bdqyljmjdolpycjjmcmu.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+    );
+
+    let allTransactions = [];
+    let displayedTransactions = [];
 
     async function loadStankari() {
       const sel = document.getElementById('stankarSelect');
@@ -159,7 +138,6 @@
       }
     }
 
-    // vykreslí a uloží právě zobrazená data
     function renderTable(data) {
       displayedTransactions = data;
       const tbody = document.getElementById('history-table').querySelector('tbody');
@@ -173,10 +151,7 @@
           <td>${tx.typ_vymeny}</td>
           <td>${tx.male_kelimky}</td>
           <td>${tx.velke_kelimky}</td>
-          <td>${new Date(tx.timestamp).toLocaleString('cs-CZ',{
-            day:'2-digit',month:'2-digit',year:'numeric',
-            hour:'2-digit',minute:'2-digit',
-          })}</td>
+          <td>${new Date(tx.timestamp).toLocaleString('cs-CZ',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -188,7 +163,7 @@
       const from = document.getElementById('dateFrom').value;
       const to   = document.getElementById('dateTo').value;
 
-      if (s)    filtered = filtered.filter(t => t.stankar === s);
+      if (s) filtered = filtered.filter(t => t.stankar === s);
       if (from) filtered = filtered.filter(t => new Date(t.timestamp) >= new Date(from));
       if (to)   filtered = filtered.filter(t => new Date(t.timestamp) <= new Date(to));
 
@@ -196,7 +171,6 @@
     }
 
     function exportToExcel() {
-      // vezmeme jen právě zobrazená data
       const data = displayedTransactions.map(tx => ({
         ID:           tx.id,
         Zaměstnanec:  tx.zamestnanec,
@@ -204,24 +178,12 @@
         Typ:          tx.typ_vymeny,
         Malých:       tx.male_kelimky,
         Velkých:      tx.velke_kelimky,
-        Čas:          new Date(tx.timestamp).toLocaleString('cs-CZ',{
-                         day:'2-digit',month:'2-digit',year:'numeric',
-                         hour:'2-digit',minute:'2-digit',second:'2-digit'
-                       })
+        Čas:          new Date(tx.timestamp).toLocaleString('cs-CZ',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'})
       }));
 
-      // přidáme součtový řádek
       const totalSmall = data.reduce((sum,r) => sum + r.Malých, 0);
       const totalBig   = data.reduce((sum,r) => sum + r.Velkých, 0);
-      data.push({
-        ID: 'SUMA',
-        Zaměstnanec: '',
-        Stánkař: '',
-        Typ: '',
-        Malých: totalSmall,
-        Velkých: totalBig,
-        Čas: ''
-      });
+      data.push({ID: 'SUMA', Zaměstnanec:'', Stánkař:'', Typ:'', Malých: totalSmall, Velkých: totalBig, Čas:''});
 
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
@@ -229,11 +191,12 @@
       XLSX.writeFile(wb, 'historie_vymen.xlsx');
     }
   </script>
-</body>
-  <script>
-  document.addEventListener('DOMContentLoaded', async () => {
-    await recoverSession();
-  });
-</script>
 
+  <!-- Service Worker registrace -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js').catch(console.error);
+    }
+  </script>
+</body>
 </html>

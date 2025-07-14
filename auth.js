@@ -1,81 +1,57 @@
 // auth.js
 
 const SUPABASE_URL = 'https://bdqyljmjdolpycjjmcmu.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcXlsam1qZG9scHljamptY211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NTM1MjUsImV4cCI6MjA2NzEyOTUyNX0.w5M01wvhI52x2vLy1G5rL7TWAYMCj1c3LptJXO3GfnI'; // zkráceno pro přehlednost
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcXlsam1qZG9scHljamptY211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NTM1MjUsImV4cCI6MjA2NzEyOTUyNX0.w5M01wvhI52x2vLy1G5rL7TWAYMCj1c3LptJXO3GfnI'; // tvůj anon key
 
-window.supabaseClient = supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY,
-  {
-    auth: {
-      persistSession: true,
-      detectSessionInUrl: false
-    }
-  }
-);
-
-// 🆕 IndexedDB fallback pomocí localForage
-(async () => {
-  if (!window.localforage) {
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js';
-    document.head.appendChild(script);
-    await new Promise(res => script.onload = res);
-  }
-})();
-
-// 🆕 Ukládání session do IndexedDB při změně
-supabaseClient.auth.onAuthStateChange((event, session) => {
-  if (session) {
-    localforage.setItem('sb-session', session);
-  } else {
-    localforage.removeItem('sb-session');
+window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: true,
+    detectSessionInUrl: false
   }
 });
 
-// 🆕 Obnovení session z IndexedDB
-window.recoverSession = async function () {
-  const { data: { session }, error } = await supabaseClient.auth.getSession();
-
-  if (!session) {
-    console.log("⚠️ No active session, trying IndexedDB fallback...");
-    const storedSession = await localforage.getItem('sb-session');
-    if (storedSession) {
-      const { error: setError } = await supabaseClient.auth.setSession(storedSession);
-      if (setError) {
-        console.warn("❌ Failed to set session from IndexedDB:", setError);
-        window.location.replace('index.html');
-      } else {
-        console.log("✅ Session restored from IndexedDB");
-      }
-    } else {
-      console.warn("❌ No session in IndexedDB, redirecting...");
-      window.location.replace('index.html');
-    }
+// 🔥 Ulož refresh token do cookie při loginu
+supabaseClient.auth.onAuthStateChange((event, session) => {
+  if (session && session.refresh_token) {
+    document.cookie = `sb-refresh-token=${session.refresh_token}; path=/; secure; samesite=strict; max-age=604800`;
   } else {
-    console.log("✅ Session is active");
+    document.cookie = 'sb-refresh-token=; Max-Age=0; path=/';
   }
+});
+
+// 🔥 Načti refresh token z cookie
+function getRefreshTokenFromCookie() {
+  return document.cookie
+    .split('; ')
+    .find(row => row.startsWith('sb-refresh-token='))
+    ?.split('=')[1];
+}
+
+// 🔥 Obnov session z localStorage nebo cookie
+window.recoverSession = async function () {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+
+  if (session) {
+    console.log("✅ Session active");
+    return;
+  }
+
+  console.log("⚠️ No session, trying cookie fallback...");
+  const refreshToken = getRefreshTokenFromCookie();
+  if (refreshToken) {
+    const { error } = await supabaseClient.auth.setSession({
+      refresh_token: refreshToken
+    });
+    if (!error) {
+      console.log("✅ Session restored from cookie");
+      return;
+    }
+    console.error("❌ Failed to restore from cookie:", error.message);
+  }
+
+  console.warn("❌ No session found. Redirecting to login.");
+  window.location.replace('index.html');
 };
 
-window.redirectIfLoggedIn = async function () {
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  if (!session) return;
-  const { data: profile } = await supabaseClient
-    .from('profiles').select('role').eq('id', session.user.id).single();
-  switch (profile.role) {
-    case 'kelimkar': return window.location.replace('kelimkar.html');
-    case 'stankar': return window.location.replace('stankar.html');
-    case 'nadrizeny': return window.location.replace('nadrizeny.html');
-  }
-};
-
-window.requireAuth = async function () {
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  if (!session) {
-    window.location.replace('index.html');
-    throw new Error('Redirecting to login');
-  }
-  const { data: profile } = await supabaseClient
-    .from('profiles').select('name, role').eq('id', session.user.id).single();
   return profile;
 };

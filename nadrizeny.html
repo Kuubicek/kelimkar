@@ -58,8 +58,17 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="auth.js"></script>
   <script>
-  recoverSession();
-  </script>
+  recoverSession().then(async () => {
+    try {
+      const profile = await requireAuth();
+      console.log("✅ Authenticated as", profile.role);
+      // Pokud chceš, načti další kód pro UI tady
+    } catch (e) {
+      console.warn("❌ Not authenticated, redirecting to login");
+    }
+  });
+</script>
+
 
   <script>
     // 0) Supabase

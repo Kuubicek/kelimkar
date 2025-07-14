@@ -15,7 +15,6 @@ window.supabaseClient = supabase.createClient(
   }
 );
 
-// ✅ 🔄 NOVÉ: Opravené session recovery
 window.recoverSession = async function () {
   const { data: { session }, error } = await supabaseClient.auth.getSession();
 
@@ -24,9 +23,8 @@ window.recoverSession = async function () {
     const { data, error: refreshError } = await supabaseClient.auth.refreshSession();
 
     if (refreshError) {
-      console.warn("❌ Session refresh failed, redirecting to login...");
-      await supabaseClient.auth.signOut(); // jistota
-      window.location.replace('index.html');
+      console.warn("❌ Session refresh failed, staying on login.");
+      // Necháme uživatele na index.html bez redirect loopu
     } else {
       console.log("✅ Session successfully recovered from refresh token");
     }
@@ -34,6 +32,7 @@ window.recoverSession = async function () {
     console.log("✅ Session is already active");
   }
 };
+
 
 // 2) Přesměruje z loginu, pokud už session je
 window.redirectIfLoggedIn = async function () {

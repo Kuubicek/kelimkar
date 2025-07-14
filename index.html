@@ -2,12 +2,12 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
 
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#212050" />
 
-  <!-- A) Načti localForage, Supabase a auth.js – jen jednou -->
+  <!-- A) Načti localForage, Supabase a auth.js -->
   <script src="https://cdn.jsdelivr.net/npm/localforage/dist/localforage.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="auth.js"></script>
@@ -16,61 +16,72 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+
   <header class="site-header">
-    <img src="https://www.msul.cz/wp-content/uploads/2023/02/logo-svg.svg"
-         alt="Logo Městských služeb" class="logo" />
+    <img
+      src="https://www.msul.cz/wp-content/uploads/2023/02/logo-svg.svg"
+      alt="Logo Městských služeb"
+      class="logo"
+    />
   </header>
 
   <div class="login-container">
     <div class="login-box">
       <h1>Přihlášení</h1>
-      <input type="email"    id="email"    placeholder="Email" required />
-      <input type="password" id="password" placeholder="Heslo" required />
+      <input type="email"    id="email"    placeholder="Email"    required />
+      <input type="password" id="password" placeholder="Heslo"    required />
       <button id="btnLogin">Přihlásit se</button>
       <div id="status" class="status"></div>
     </div>
   </div>
 
-  <!-- B) Recover session, redirectIfLoggedIn a login handler -->
+  <!-- B) recoverSession + redirectIfLoggedIn + login handler -->
   <script>
     recoverSession().then(async () => {
+      // Pokud už session existuje, pošleme pryč z loginu
       redirectIfLoggedIn();
 
-      document.getElementById('btnLogin')
-        .addEventListener('click', async () => {
-          const statusEl = document.getElementById('status');
-          statusEl.textContent = '';
+      // Pak připojíme listener na přihlášení
+      const btn = document.getElementById('btnLogin');
+      btn.addEventListener('click', async () => {
+        const statusEl = document.getElementById('status');
+        statusEl.textContent = '';
+        statusEl.className = 'status';
 
-          const email    = document.getElementById('email').value.trim();
-          const password = document.getElementById('password').value.trim();
+        const email    = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
+        if (!email || !password) {
+          statusEl.className = 'status error';
+          statusEl.textContent = '❌ Vyplňte email i heslo';
+          return;
+        }
 
-          if (!email || !password) {
-            statusEl.className = 'status error';
-            return statusEl.textContent = '❌ Vyplňte email i heslo';
-          }
+        try {
+          const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+          if (error) throw error;
 
-          try {
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            if (error) throw error;
+          // Načti roli a přesměruj
+          const { data: profile } = await supabaseClient
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .single();
 
-            const { data: profile } = await supabaseClient
-              .from('profiles').select('role').eq('id', data.user.id).single();
+          if      (profile.role === 'kelimkar')  window.location.href = 'kelimkar.html';
+          else if (profile.role === 'stankar')   window.location.href = 'stankar.html';
+          else if (profile.role === 'nadrizeny') window.location.href = 'nadrizeny.html';
+          else throw new Error('Neznámá role');
 
-            if      (profile.role === 'kelimkar')  window.location.href = 'kelimkar.html';
-            else if (profile.role === 'stankar')   window.location.href = 'stankar.html';
-            else if (profile.role === 'nadrizeny') window.location.href = 'nadrizeny.html';
-            else throw new Error('Neznámá role');
-
-          } catch (e) {
-            console.error(e);
-            statusEl.className = 'status error';
-            statusEl.textContent = '❌ Přihlášení selhalo';
-          }
-        });
+        } catch (e) {
+          console.error(e);
+          statusEl.className = 'status error';
+          statusEl.textContent = '❌ Přihlášení selhalo';
+        }
+      });
     });
   </script>
 
-  <!-- Service worker registrace – může zůstat dole -->
+  <!-- Service Worker registrace -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js').catch(console.error);

@@ -69,8 +69,7 @@ window.recoverSession = async function() {
   }  
 
   // 5c) Nic nevyšlo → login  
-  console.warn('❌ No session → redirect to login');  
-  window.location.replace('index.html');  
+  console.warn('❌ No session → redirect to login');    
 };  
 
 // ––––––––––––––––––––––––––––––––––––––––––––––––––––  

@@ -6,7 +6,7 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#212050" />
 
-  <!-- A) načti localForage, Supabase, auth.js -->
+  <!-- A) Načti localForage, Supabase a auth.js -->
   <script src="https://cdn.jsdelivr.net/npm/localforage/dist/localforage.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="auth.js"></script>
@@ -16,8 +16,11 @@
 </head>
 <body>
   <header class="site-header">
-    <img src="https://www.msul.cz/wp-content/uploads/2023/02/logo-svg.svg"
-         alt="Logo" class="logo" />
+    <img
+      src="https://www.msul.cz/wp-content/uploads/2023/02/logo-svg.svg"
+      alt="Logo Městských služeb"
+      class="logo"
+    />
   </header>
 
   <div class="login-container">
@@ -30,13 +33,13 @@
     </div>
   </div>
 
-  <!-- B) obnov session, hned přesměruj přihlášené a až pak řeš login -->
+  <!-- B) Obnov session, hned přesměruj přihlášené a až pak řeš login -->
   <script>
-    recoverSession().then(async () => {
-      // ← tady přejdi pryč, pokud už jsi logged in
+    recoverSession().then(() => {
+      // 1) Přesměruj přihlášené uživatele
       redirectIfLoggedIn();
 
-      // ← pokud jsi unAuth, připoj listener na tlačítko
+      // 2) Pokud jsi nepřihlášený, přidej listener na tlačítko
       document.getElementById('btnLogin').addEventListener('click', async () => {
         const statusEl = document.getElementById('status');
         statusEl.textContent = '';
@@ -54,7 +57,10 @@
           if (error) throw error;
 
           const { data: profile } = await supabaseClient
-            .from('profiles').select('role').eq('id', data.user.id).single();
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .single();
 
           if      (profile.role === 'kelimkar')  window.location.href = 'kelimkar.html';
           else if (profile.role === 'stankar')   window.location.href = 'stankar.html';
@@ -70,7 +76,7 @@
     });
   </script>
 
-  <!-- Service Worker registrace (dole) -->
+  <!-- Service Worker registrace -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js').catch(console.error);

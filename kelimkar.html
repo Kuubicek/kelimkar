@@ -5,13 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#212050" />
+
+  <!-- A) Načti localForage, Supabase a auth.js -->
+  <script src="https://cdn.jsdelivr.net/npm/localforage/dist/localforage.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script src="auth.js"></script>
+
   <title>Kelímkář – Odevzdání kelímků</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="site-header">
-    <img src="https://www.msul.cz/wp-content/uploads/2023/02/logo-svg.svg"
-         alt="Logo" class="logo" />
+    <img
+      src="https://www.msul.cz/wp-content/uploads/2023/02/logo-svg.svg"
+      alt="Logo"
+      class="logo"
+    />
     <button id="btnLogout" class="logout-btn">Odhlásit se</button>
     <span id="userName" class="user-name">Načítám…</span>
   </header>
@@ -43,75 +52,46 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <script src="auth.js"></script>
-   <script>
-  recoverSession().then(async () => {
-    try {
-      const profile = await requireAuth();
-      console.log("✅ Authenticated as", profile.role);
-      // Pokud chceš, načti další kód pro UI tady
-    } catch (e) {
-      console.warn("❌ Not authenticated, redirecting to login");
-    }
-  });
-</script>
-
-
+  <!-- B) recoverSession + requireAuth + init -->
   <script>
-    // Inicializace Supabase klienta
-    const supabaseClient = supabase.createClient(
-      'https://bdqyljmjdolpycjjmcmu.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcXlsam1qZG9scHljamptY211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NTM1MjUsImV4cCI6MjA2NzEyOTUyNX0.w5M01wvhI52x2vLy1G5rL7TWAYMCj1c3LptJXO3GfnI'
-    );
+    recoverSession().then(async () => {
+      try {
+        // 1) Ověř a vrať profil
+        const profile = await requireAuth();
+        console.log("✅ Logged in as", profile.role);
 
-    window.addEventListener('DOMContentLoaded', async () => {
-      // === session guard ===
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (!session) {
-        return window.location.href = 'index.html';
+        // 2) Zobraz jméno
+        document.getElementById('userName').textContent = profile.name;
+
+        // 3) Logout handler
+        document.getElementById('btnLogout').addEventListener('click', async () => {
+          await supabaseClient.auth.signOut();
+          window.location.href = 'index.html';
+        });
+
+        // 4) Init funkce
+        await loadVendors();
+        setupNumberInputs();
+        document.getElementById('btnSubmit').addEventListener('click', submitTransaction);
+      } catch (e) {
+        console.warn("❌ Not authenticated → redirecting to login");
       }
-
-      // Načti a zobraz jméno
-      const uid = session.user.id;
-      const { data: profile } = await supabaseClient
-        .from('profiles').select('name').eq('id', uid).single();
-      document.getElementById('userName').textContent =
-        profile?.name ?? 'Uživatel';
-
-      // Registrace service worker
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js').catch(console.error);
-      }
-
-      // Logout
-      document.getElementById('btnLogout').addEventListener('click', async () => {
-        await supabaseClient.auth.signOut();
-        window.location.href = 'index.html';
-      });
-
-      // Načti dropdown stánkařů
-      await loadVendors();
-
-      // Nastav validaci inputů
-      setupNumberInputs();
-
-      // Odeslat transakci
-      document.getElementById('btnSubmit')
-        .addEventListener('click', submitTransaction);
     });
+
+    // ==== PŮVODNÍ FUNKCE Z TVÉHO KÓDU ====
 
     async function loadVendors() {
       const sel = document.getElementById('vendorSelect');
-      const { data: vendors, error } = await supabaseClient
-        .from('profiles')
-        .select('name')
-        .eq('role', 'stankar');
-      if (error || !vendors) {
+      try {
+        const { data: vendors, error } = await supabaseClient
+          .from('profiles')
+          .select('name')
+          .eq('role', 'stankar');
+        if (error || !vendors) throw error || new Error('No vendors');
+        sel.innerHTML = vendors.map(v => `<option>${v.name}</option>`).join('');
+      } catch {
         sel.innerHTML = '<option>Chyba načtení</option>';
-        return;
       }
-      sel.innerHTML = vendors.map(v => `<option>${v.name}</option>`).join('');
     }
 
     async function submitTransaction() {
@@ -128,11 +108,16 @@
       }
 
       try {
+        // Získat jméno kelimkara
         const { data: { session } } = await supabaseClient.auth.getSession();
         const { data: profile } = await supabaseClient
-          .from('profiles').select('name').eq('id', session.user.id).single();
+          .from('profiles')
+          .select('name')
+          .eq('id', session.user.id)
+          .single();
         const kelimkarName = profile.name;
 
+        // Ulož transakci
         const { error } = await supabaseClient
           .from('transactions')
           .insert([{
@@ -140,7 +125,7 @@
             stankar:       vendor,
             typ_vymeny:    'O+V',
             male_kelimky:  small,
-            velke_kelimky:  big,
+            velke_kelimky: big,
             status:        'čeká'
           }]);
         if (error) throw error;
@@ -159,12 +144,11 @@
     function setupNumberInputs() {
       document.querySelectorAll('input[type="number"]').forEach(input => {
         input.addEventListener('keydown', e => {
-          // Zablokuj +, -, a vše kromě číslic a ovládacích kláves
-          if (['-','+'].includes(e.key) ||
-              !(/[0-9]/.test(e.key)) &&
-              !['Backspace','Tab','ArrowLeft','ArrowRight','Delete'].includes(e.key)) {
-            e.preventDefault();
-          }
+          if (
+            ['-', '+'].includes(e.key) ||
+            !(/[0-9]/.test(e.key)) &&
+            !['Backspace','Tab','ArrowLeft','ArrowRight','Delete'].includes(e.key)
+          ) e.preventDefault();
         });
         input.addEventListener('paste', e => {
           const txt = (e.clipboardData || window.clipboardData).getData('text');
@@ -173,11 +157,12 @@
       });
     }
   </script>
-</body>
-  <script>
-  document.addEventListener('DOMContentLoaded', async () => {
-    await recoverSession();
-  });
-</script>
 
+  <!-- Service Worker registrace -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js').catch(console.error);
+    }
+  </script>
+</body>
 </html>

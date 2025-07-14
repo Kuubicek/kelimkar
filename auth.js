@@ -2,7 +2,7 @@
 
 // 1) Inicializace Supabase
 const SUPABASE_URL = 'https://bdqyljmjdolpycjjmcmu.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'; // tvůj klíč
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcXlsam1qZG9scHljamptY211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NTM1MjUsImV4cCI6MjA2NzEyOTUyNX0.w5M01wvhI52x2vLy1G5rL7TWAYMCj1c3LptJXO3GfnI'; // tvůj klíč
 window.supabaseClient = supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY,

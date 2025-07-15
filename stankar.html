@@ -15,8 +15,7 @@
 </head>
 <body>
   <header class="site-header">
-    <img src="https://www.msul.cz/wp-content/uploads/2023/02/logo-svg.svg"
-         alt="Logo" class="logo" />
+    <img src="https://www.msul.cz/wp-content/uploads/2023/02/logo-svg.svg" alt="Logo" class="logo" />
     <button id="btnLogout" class="logout-btn">Odhlásit se</button>
     <span id="userName" class="user-name">Načítám…</span>
   </header>
@@ -53,39 +52,64 @@
         <tbody></tbody>
       </table>
     </div>
+
+    <!-- Sekce pro odeslání požadavku -->
+    <div class="request-container">
+      <button id="btnRequest">🍺 Požádat o kelímky</button>
+      <div id="reqStatus" class="status"></div>
+    </div>
   </div>
 
-  <div class="request-container">
-    <button id="btnRequest">🍺 Požádat o kelímky</button>
-    <div id="reqStatus" class="status"></div>
-  </div>
-
-
-  <!-- B) recoverSession + requireAuth + init -->
+  <!-- B) recoverSession + requireAuth + init funkcí -->
   <script>
     recoverSession().then(async () => {
       try {
-        // 1) Ověř přihlášení a získání profilu
+        // Ověř přihlášení a načti profil
         const profile = await requireAuth();
         console.log("✅ Logged in as", profile.role);
 
-        // 2) Zobraz jméno
+        // Zobraz jméno a logout
         document.getElementById('userName').textContent = profile.name;
-
-        // 3) Logout
         document.getElementById('btnLogout').addEventListener('click', async () => {
           await supabaseClient.auth.signOut();
           window.location.replace('index.html');
         });
 
-        // 4) Načti data
+        // Načti transakce a filtry
+        document.getElementById('btnFilter').addEventListener('click', applyFilter);
+        document.getElementById('btnExport').addEventListener('click', exportToExcel);
         await loadForStankar();
+
+        // Přidej listener na "Request"
+        document.getElementById('btnRequest').addEventListener('click', async () => {
+          const statusEl = document.getElementById('reqStatus');
+          statusEl.textContent = '';
+          try {
+            // zjisti jméno stánkaře
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            const { data: prof } = await supabaseClient
+              .from('profiles').select('name').eq('id', session.user.id).single();
+            // vlož notifikaci
+            const { error } = await supabaseClient
+              .from('notifications')
+              .insert([{ stankar: prof.name, message: 'Potřebujeme kelímky!', status:'new' }]);
+            if (error) throw error;
+            statusEl.className = 'status ok';
+            statusEl.textContent = '✅ Požadavek odeslán';
+          } catch (e) {
+            console.error(e);
+            statusEl.className = 'status error';
+            statusEl.textContent = '❌ Chyba: ' + e.message;
+          }
+        });
+
       } catch (e) {
-        console.warn("❌ Not authenticated → redirect to login");
+        console.warn("❌ Not authenticated → redirecting to login");
+        window.location.replace('index.html');
       }
     });
 
-    // ==== PŮVODNÍ FUNKCE ==== 
+    // ==== PŮVODNÍ KÓD ==== 
     async function loadForStankar() {
       const statusEl = document.getElementById('status');
       const table    = document.getElementById('tx-table');
@@ -96,10 +120,7 @@
         // zjisti jméno stánkaře
         const { data: { session } } = await supabaseClient.auth.getSession();
         const { data: prof } = await supabaseClient
-          .from('profiles')
-          .select('name')
-          .eq('id', session.user.id)
-          .single();
+          .from('profiles').select('name').eq('id', session.user.id).single();
         const stand = prof.name;
 
         // načti transakce
@@ -128,7 +149,7 @@
             <td>${tx.velke_kelimky}</td>
             <td>${new Date(tx.timestamp).toLocaleString('cs-CZ',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'})}</td>
             <td>${tx.status}</td>
-            <td>${tx.status==='čeká'?`<button class="confirm" data-id="${tx.id}">Potvrdit</button>`:''}</td>
+            <td>${tx.status==='čeká'?`<button class='confirm' data-id='${tx.id}'>Potvrdit</button>`:''}</td>
           `;
           tbody.appendChild(tr);
         });
@@ -149,6 +170,7 @@
         });
       } catch (e) {
         console.error(e);
+        const statusEl = document.getElementById('status');
         statusEl.textContent = '❌ ' + e.message;
         statusEl.className   = 'status error';
       }
@@ -157,9 +179,7 @@
 
   <!-- Service Worker registrace -->
   <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js').catch(console.error);
-    }
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('service-worker.js');
   </script>
 </body>
 </html>

@@ -1,0 +1,7 @@
+INSERT INTO public.requests (id, stankar, "timestamp", status) VALUES (3, 'Petr1', '2025-07-07 20:38:11.79376'::timestamptz, 'čeká') ON CONFLICT DO NOTHING;
+INSERT INTO public.requests (id, stankar, "timestamp", status) VALUES (4, 'Eliska1', '2025-07-07 20:52:45.322038'::timestamptz, 'čeká') ON CONFLICT DO NOTHING;
+INSERT INTO public.requests (id, stankar, "timestamp", status) VALUES (5, 'Eliska1', '2025-07-07 20:53:06.81532'::timestamptz, 'čeká') ON CONFLICT DO NOTHING;
+INSERT INTO public.requests (id, stankar, "timestamp", status) VALUES (6, 'Eliska1', '2025-07-07 20:53:41.915098'::timestamptz, 'čeká') ON CONFLICT DO NOTHING;
+INSERT INTO public.requests (id, stankar, "timestamp", status) VALUES (7, 'Eliska1', '2025-07-07 20:56:02.483261'::timestamptz, 'čeká') ON CONFLICT DO NOTHING;
+INSERT INTO public.requests (id, stankar, "timestamp", status) VALUES (8, 'Eliska1', '2025-07-07 20:57:57.933185'::timestamptz, 'čeká') ON CONFLICT DO NOTHING;
+INSERT INTO public.requests (id, stankar, "timestamp", status) VALUES (9, 'Eliska1', '2025-07-07 20:58:12.675032'::timestamptz, 'čeká') ON CONFLICT DO NOTHING;

@@ -1,7 +1,7 @@
 // 1) Inicializace – globální `supabase` už existuje z CDN
 const supabaseClient = supabase.createClient(
-  'https://bdqyljmjdolpycjjmcmu.supabase.co', // ← Tvůj Project URL
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkcXlsam1qZG9scHljamptY211Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE1NTM1MjUsImV4cCI6MjA2NzEyOTUyNX0.w5M01wvhI52x2vLy1G5rL7TWAYMCj1c3LptJXO3GfnI'               // ← Tvůj anon public API key
+  window.SUPABASE_CONFIG.url,
+  window.SUPABASE_CONFIG.anonKey
 );
 
 // 2) Po DOM načtení připoj handler

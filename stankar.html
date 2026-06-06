@@ -49,22 +49,22 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="auth.js"></script>
   <script>
+    let currentUser = null;
+
     window.addEventListener('DOMContentLoaded', async () => {
       try {
-        // ✅ Kontrola session
-        const user = await requireAuth();
-        document.getElementById('userName').textContent = user.email;
+        currentUser = await requireAuth();
+        document.getElementById('userName').textContent = currentUser.email;
 
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.register('service-worker.js').catch(console.error);
         }
 
-        document.getElementById('btnLogout').addEventListener('click', async () => {
-          await logout();
-        });
+        document.getElementById('btnLogout').addEventListener('click', () => logout());
 
         await loadForStankar();
       } catch (err) {
@@ -80,15 +80,14 @@
       tbody.innerHTML = '';
 
       try {
-        const userRes = await fetch('/backend/api/session', { credentials: 'include' });
-        const { user } = await userRes.json();
-        const stand = user.email;
+        const stand = currentUser.email;
 
         const txRes = await fetch(
           `${window.SUPABASE_CONFIG.url}/rest/v1/transactions?stankar=eq.${encodeURIComponent(stand)}&order=timestamp.desc`,
           {
             headers: {
-              apikey: window.SUPABASE_CONFIG.anonKey
+              apikey: window.SUPABASE_CONFIG.anonKey,
+              Authorization: 'Bearer ' + currentUser.access_token
             }
           }
         );
@@ -135,13 +134,13 @@
                 method: 'PATCH',
                 headers: {
                   apikey: window.SUPABASE_CONFIG.anonKey,
+                  Authorization: 'Bearer ' + currentUser.access_token,
                   'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ status: 'potvrzeno' })
               }
             );
-            const cell = b.closest('tr').querySelector('td:nth-child(8)');
-            cell.textContent = 'potvrzeno';
+            b.closest('tr').querySelector('td:nth-child(8)').textContent = 'potvrzeno';
             b.remove();
           });
         });

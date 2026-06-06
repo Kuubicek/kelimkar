@@ -43,34 +43,26 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="auth.js"></script>
   <script>
+    let currentUser = null;
+
     window.addEventListener('DOMContentLoaded', async () => {
       try {
-        // ✅ Zkontroluj session
-        const user = await requireAuth();
-        document.getElementById('userName').textContent = user.email;
+        currentUser = await requireAuth();
+        document.getElementById('userName').textContent = currentUser.email;
 
-        // Registrace service worker
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.register('service-worker.js').catch(console.error);
         }
 
-        // Logout
-        document.getElementById('btnLogout').addEventListener('click', async () => {
-          await logout();
-        });
+        document.getElementById('btnLogout').addEventListener('click', () => logout());
+        document.getElementById('btnSubmit').addEventListener('click', submitTransaction);
 
-        // Načti dropdown stánkařů
         await loadVendors();
-
-        // Nastav validaci inputů
         setupNumberInputs();
-
-        // Odeslat transakci
-        document.getElementById('btnSubmit')
-          .addEventListener('click', submitTransaction);
 
       } catch (err) {
         console.error(err);
@@ -80,23 +72,19 @@
     async function loadVendors() {
       const sel = document.getElementById('vendorSelect');
       try {
-        const response = await fetch('/backend/api/session', { credentials: 'include' });
-        const { user } = await response.json();
-
-        const vendorsResponse = await fetch(
+        const res = await fetch(
           `${window.SUPABASE_CONFIG.url}/rest/v1/profiles?role=eq.stankar`,
           {
             headers: {
               apikey: window.SUPABASE_CONFIG.anonKey,
-              Authorization: 'Bearer ' + user.access_token
+              Authorization: 'Bearer ' + currentUser.access_token
             }
           }
         );
-        const vendors = await vendorsResponse.json();
-
+        const vendors = await res.json();
         sel.innerHTML = vendors.map(v => `<option>${v.name}</option>`).join('');
-      } catch (error) {
-        console.error(error);
+      } catch (err) {
+        console.error(err);
         sel.innerHTML = '<option>Chyba načtení</option>';
       }
     }
@@ -115,20 +103,18 @@
       }
 
       try {
-        const response = await fetch('/backend/api/session', { credentials: 'include' });
-        const { user } = await response.json();
-
-        const insertResponse = await fetch(
+        const res = await fetch(
           `${window.SUPABASE_CONFIG.url}/rest/v1/transactions`,
           {
             method: 'POST',
             headers: {
               apikey: window.SUPABASE_CONFIG.anonKey,
-              Authorization: 'Bearer ' + user.access_token,
-              'Content-Type': 'application/json'
+              Authorization: 'Bearer ' + currentUser.access_token,
+              'Content-Type': 'application/json',
+              Prefer: 'return=minimal'
             },
             body: JSON.stringify([{
-              zamestnanec: user.email,
+              zamestnanec: currentUser.email,
               stankar: vendor,
               typ_vymeny: 'O+V',
               male_kelimky: small,
@@ -137,7 +123,7 @@
             }])
           }
         );
-        if (!insertResponse.ok) throw new Error('Nepodařilo se uložit transakci');
+        if (!res.ok) throw new Error('Nepodařilo se uložit transakci');
 
         statusEl.className = 'status ok';
         statusEl.textContent = '✅ Odesláno';
@@ -151,11 +137,11 @@
     }
 
     function setupNumberInputs() {
-      document.querySelectorAll('input[type=\"number\"]').forEach(input => {
+      document.querySelectorAll('input[type="number"]').forEach(input => {
         input.addEventListener('keydown', e => {
-          if (['-','+'].includes(e.key) ||
+          if (['-', '+'].includes(e.key) ||
               !(/[0-9]/.test(e.key)) &&
-              !['Backspace','Tab','ArrowLeft','ArrowRight','Delete'].includes(e.key)) {
+              !['Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'Delete'].includes(e.key)) {
             e.preventDefault();
           }
         });

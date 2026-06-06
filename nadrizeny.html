@@ -55,17 +55,18 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="auth.js"></script>
   <script>
     let allTransactions = [];
     let displayedTransactions = [];
+    let currentUser = null;
 
     window.addEventListener('DOMContentLoaded', async () => {
       try {
-        // ✅ Kontrola session
-        const user = await requireAuth();
-        document.getElementById('userName').textContent = user.email;
+        currentUser = await requireAuth();
+        document.getElementById('userName').textContent = currentUser.email;
 
         if ('serviceWorker' in navigator) {
           navigator.serviceWorker.register('service-worker.js').catch(console.error);
@@ -96,7 +97,8 @@
           `${window.SUPABASE_CONFIG.url}/rest/v1/profiles?role=eq.stankar`,
           {
             headers: {
-              apikey: window.SUPABASE_CONFIG.anonKey
+              apikey: window.SUPABASE_CONFIG.anonKey,
+              Authorization: 'Bearer ' + currentUser.access_token
             }
           }
         );
@@ -121,7 +123,8 @@
           `${window.SUPABASE_CONFIG.url}/rest/v1/transactions?order=timestamp.desc`,
           {
             headers: {
-              apikey: window.SUPABASE_CONFIG.anonKey
+              apikey: window.SUPABASE_CONFIG.anonKey,
+              Authorization: 'Bearer ' + currentUser.access_token
             }
           }
         );

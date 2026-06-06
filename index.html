@@ -25,6 +25,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="auth.js"></script>
   <script>
@@ -33,7 +34,7 @@
     }
 
     document.getElementById('btnLogin').addEventListener('click', async () => {
-      const email = document.getElementById('email').value.trim();
+      const email    = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value.trim();
       const statusEl = document.getElementById('status');
       statusEl.textContent = '';
@@ -45,32 +46,27 @@
       }
 
       try {
-        const response = await fetch('/backend/api/login', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
-        });
+        const { data, error } = await window.getClient().auth.signInWithPassword({ email, password });
+        if (error) throw error;
 
-        if (!response.ok) {
-          const err = await response.json();
-          throw new Error(err.error || 'Přihlášení selhalo');
-        }
+        const { data: profile, error: profErr } = await window.getClient()
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+        if (profErr) throw profErr;
 
-        const { role } = await response.json();
-
-        if (role === 'kelimkar')       window.location.href = 'kelimkar.html';
-        else if (role === 'stankar')   window.location.href = 'stankar.html';
-        else if (role === 'nadrizeny') window.location.href = 'nadrizeny.html';
+        if (profile.role === 'kelimkar')       window.location.href = 'kelimkar.html';
+        else if (profile.role === 'stankar')   window.location.href = 'stankar.html';
+        else if (profile.role === 'nadrizeny') window.location.href = 'nadrizeny.html';
         else throw new Error('Neznámá role');
 
       } catch (e) {
         console.error(e);
         statusEl.className = 'status error';
-        statusEl.textContent = '❌ ' + e.message;
+        statusEl.textContent = '❌ ' + (e.message || 'Přihlášení selhalo');
       }
     });
   </script>
 </body>
-
 </html>

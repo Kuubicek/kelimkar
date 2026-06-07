@@ -80,7 +80,18 @@
       tbody.innerHTML = '';
 
       try {
-        const stand = currentUser.email;
+        const profileRes = await fetch(
+          `${window.SUPABASE_CONFIG.url}/rest/v1/profiles?id=eq.${currentUser.id}&select=name`,
+          {
+            headers: {
+              apikey: window.SUPABASE_CONFIG.anonKey,
+              Authorization: 'Bearer ' + currentUser.access_token
+            }
+          }
+        );
+        const profiles = await profileRes.json();
+        const stand = profiles[0]?.name;
+        if (!stand) throw new Error('Profil nenalezen');
 
         const txRes = await fetch(
           `${window.SUPABASE_CONFIG.url}/rest/v1/transactions?stankar=eq.${encodeURIComponent(stand)}&order=timestamp.desc`,
